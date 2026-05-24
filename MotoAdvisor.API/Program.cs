@@ -12,6 +12,8 @@ using MotoAdvisor.Infrastructure.Services;
 using MotoAdvisor.API.Services;
 using Serilog;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
@@ -120,6 +122,8 @@ using (var scope = app.Services.CreateScope())
     var roleManager  = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager  = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var db           = scope.ServiceProvider.GetRequiredService<MotoAdvisor.Infrastructure.Data.AppDbContext>();
+
+    await db.Database.MigrateAsync();
 
     foreach (var role in new[] { "Admin", "User" })
     {
