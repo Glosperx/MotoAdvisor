@@ -1,0 +1,6 @@
+@MotoAdvisor.API_HostAddress = http://localhost:5240
+
+GET {{MotoAdvisor.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

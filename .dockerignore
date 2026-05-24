@@ -1,0 +1,21 @@
+# Exclude build artefacts, secrets, and large local-only directories from
+# the Docker build context (speeds up image builds significantly).
+
+.env
+.git
+.vs
+.gitignore
+
+# .NET
+**/bin/
+**/obj/
+**/logs/
+**/*.user
+
+# Node / frontend (built inside the frontend image, not needed for API build)
+frontend/node_modules/
+frontend/dist/
+
+# Local photos — not baked into the image; provided via Docker volume at runtime
+Photos/
+MotoAdvisor.API/wwwroot/photos/
