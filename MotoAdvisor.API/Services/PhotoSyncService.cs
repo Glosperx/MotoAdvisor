@@ -75,7 +75,17 @@ public class PhotoSyncService : IHostedService
             foreach (var src in imageFiles)
             {
                 var dest = Path.Combine(destDir, Path.GetFileName(src));
-                File.Copy(src, dest, overwrite: true);
+                try
+                {
+                    if (Path.GetFullPath(src) == Path.GetFullPath(dest))
+                        continue;
+
+                    File.Copy(src, dest, overwrite: true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "PhotoSync: skipping '{File}' — copy failed", Path.GetFileName(src));
+                }
             }
 
             // Replace DB image records for this motorcycle
