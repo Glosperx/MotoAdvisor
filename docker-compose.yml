@@ -44,6 +44,7 @@ services:
       Gemini__ApiKey: ${GEMINI_API_KEY:-}
       Photos__SourcePath: /app/photos-source
     volumes:
+      - /home/glosper/photos:/app/photos-source
       - /home/glosper/photos:/app/wwwroot/photos
     expose:
       - "8080"
