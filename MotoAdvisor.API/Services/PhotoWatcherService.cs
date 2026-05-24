@@ -42,31 +42,38 @@ public class PhotoWatcherService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _sourceRoot = (_config["Photos:SourcePath"] ?? string.Empty)
-            .Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-
-        if (!Directory.Exists(_sourceRoot))
+        try
         {
-            _logger.LogWarning("PhotoWatcher: source directory not found – {Path}", _sourceRoot);
-            return;
+            _sourceRoot = (_config["Photos:SourcePath"] ?? string.Empty)
+                .Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+
+            if (!Directory.Exists(_sourceRoot))
+            {
+                _logger.LogWarning("PhotoWatcher: source directory not found – {Path}", _sourceRoot);
+                return;
+            }
+
+            using var watcher = new FileSystemWatcher(_sourceRoot)
+            {
+                IncludeSubdirectories = true,
+                NotifyFilter          = NotifyFilters.FileName,
+                EnableRaisingEvents   = true,
+            };
+
+            watcher.Created += (_, e) => TryEnqueue(e.FullPath);
+            // Renamed covers drag-drop and mv-into-folder scenarios
+            watcher.Renamed += (_, e) => TryEnqueue(e.FullPath);
+
+            _logger.LogInformation("PhotoWatcher: watching {Path}", _sourceRoot);
+
+            await foreach (var filePath in _queue.Reader.ReadAllAsync(stoppingToken))
+            {
+                await ProcessFileAsync(filePath, stoppingToken);
+            }
         }
-
-        using var watcher = new FileSystemWatcher(_sourceRoot)
+        catch (Exception ex)
         {
-            IncludeSubdirectories = true,
-            NotifyFilter          = NotifyFilters.FileName,
-            EnableRaisingEvents   = true,
-        };
-
-        watcher.Created += (_, e) => TryEnqueue(e.FullPath);
-        // Renamed covers drag-drop and mv-into-folder scenarios
-        watcher.Renamed += (_, e) => TryEnqueue(e.FullPath);
-
-        _logger.LogInformation("PhotoWatcher: watching {Path}", _sourceRoot);
-
-        await foreach (var filePath in _queue.Reader.ReadAllAsync(stoppingToken))
-        {
-            await ProcessFileAsync(filePath, stoppingToken);
+            _logger.LogWarning(ex, "PhotoWatcher: watcher failed — live photo sync disabled");
         }
     }
 
