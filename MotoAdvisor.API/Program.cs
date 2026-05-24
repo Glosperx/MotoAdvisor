@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MotoAdvisor.Core.Entities;
@@ -125,6 +126,9 @@ using (var scope = app.Services.CreateScope())
 
     await db.Database.MigrateAsync();
 
+    await db.Database.ExecuteSqlRawAsync(
+        "UPDATE \"MotorcycleImages\" SET \"ImageUrl\" = REPLACE(\"ImageUrl\", '/photos/', '/images/') WHERE \"ImageUrl\" LIKE '/photos/%'");
+
     foreach (var role in new[] { "Admin", "User" })
     {
         if (!await roleManager.RoleExistsAsync(role))
@@ -140,7 +144,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(app.Environment.WebRootPath, "photos")),
+    RequestPath = "/images"
+});
 app.UseSerilogRequestLogging();
 app.UseCors("AllowReact");
 app.UseAuthentication();

@@ -112,7 +112,7 @@ public class PhotoWatcherService : BackgroundService
 
         var folderName = Path.GetFileName(Path.GetDirectoryName(srcPath)!);
         var fileName   = Path.GetFileName(srcPath);
-        var imageUrl   = $"/photos/{folderName}/{fileName}";
+        var imageUrl   = $"/images/{folderName}/{fileName}";
         var destDir    = Path.Combine(_env.WebRootPath, "photos", folderName);
         var destPath   = Path.Combine(destDir, fileName);
 

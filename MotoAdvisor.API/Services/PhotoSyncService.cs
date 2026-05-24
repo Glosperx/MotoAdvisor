@@ -106,7 +106,7 @@ public class PhotoSyncService : IHostedService
                     db.MotorcycleImages.Add(new MotorcycleImage
                     {
                         MotorcycleId = motorcycle.Id,
-                        ImageUrl     = $"/photos/{folderName}/{fileName}",
+                        ImageUrl     = $"/images/{folderName}/{fileName}",
                         IsMain       = first,
                     });
                     first = false;
