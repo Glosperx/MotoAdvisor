@@ -43,6 +43,12 @@ public class PhotoSyncService : IHostedService
             var wwwPhotos = Path.Combine(_env.WebRootPath, "photos");
             Directory.CreateDirectory(wwwPhotos);
 
+            // When both mounts point to the same host directory the paths resolve
+            // identically — copying would cause the IOException we're avoiding.
+            var sameDir = Path.GetFullPath(sourceRoot) == Path.GetFullPath(wwwPhotos);
+            if (sameDir)
+                _logger.LogInformation("PhotoSync: source and wwwroot/photos are the same directory — skipping file copy, updating DB only");
+
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -73,20 +79,19 @@ public class PhotoSyncService : IHostedService
 
                 if (imageFiles.Count == 0) continue;
 
-                // Copy files to wwwroot
-                foreach (var src in imageFiles)
+                if (!sameDir)
                 {
-                    var dest = Path.Combine(destDir, Path.GetFileName(src));
-                    try
+                    foreach (var src in imageFiles)
                     {
-                        if (Path.GetFullPath(src) == Path.GetFullPath(dest))
-                            continue;
-
-                        File.Copy(src, dest, overwrite: true);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "PhotoSync: skipping '{File}' — copy failed", Path.GetFileName(src));
+                        var dest = Path.Combine(destDir, Path.GetFileName(src));
+                        try
+                        {
+                            File.Copy(src, dest, overwrite: true);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "PhotoSync: skipping '{File}' — copy failed", Path.GetFileName(src));
+                        }
                     }
                 }
 
