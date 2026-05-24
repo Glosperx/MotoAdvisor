@@ -18,12 +18,11 @@ RUN dotnet publish MotoAdvisor.API/MotoAdvisor.API.csproj \
     -c Release -o /app/publish --no-restore
 
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
 WORKDIR /app
 
 # curl is needed for the docker-compose healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl
 
 # Pre-create directories the app writes to at runtime
 RUN mkdir -p wwwroot/photos photos-source logs

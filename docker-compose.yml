@@ -1,15 +1,41 @@
+name: student-${USER:-glosper}
+
 services:
 
-  # ── .NET 8 API ─────────────────────────────────────────────────────────────
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: student-${USER:-glosper}-db
+    environment:
+      POSTGRES_DB: motoadvisor
+      POSTGRES_USER: motoadvisor
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    networks:
+      - studlab_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U motoadvisor -d motoadvisor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── .NET 8 API ──────────────────────────────────────────────────────────────
   api:
     build:
-      context: .                          # solution root (needs all 3 projects)
+      context: .                          # solution root — needs Core + Infrastructure
       dockerfile: MotoAdvisor.API/Dockerfile
+    container_name: student-${USER:-glosper}-api
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      # Secrets – all provided via .env, never hardcoded here
-      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING}
+      ConnectionStrings__DefaultConnection: >-
+        Host=student-${USER:-glosper}-db;Port=5432;Database=motoadvisor;
+        Username=motoadvisor;Password=${DB_PASSWORD}
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: ${JWT_ISSUER:-MotoAdvisorAPI}
       Jwt__Audience: ${JWT_AUDIENCE:-MotoAdvisorClient}
@@ -18,30 +44,42 @@ services:
       Gemini__ApiKey: ${GEMINI_API_KEY:-}
       Photos__SourcePath: /app/photos-source
     volumes:
-      - photos_source:/app/photos-source    # drop new model photos here
-      - photos_wwwroot:/app/wwwroot/photos  # served at /photos/*; persists across restarts
-    ports:
-      - "127.0.0.1:5000:8080"   # VPS reverse proxy → localhost:5000 → api:8080
+      - photos:/app/wwwroot/photos
+    expose:
+      - "8080"
+    networks:
+      - studlab_net
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/brands"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 30s
 
   # ── React SPA (nginx) ───────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "127.0.0.1:3000:80"    # VPS reverse proxy → localhost:3000 → frontend:80
+    container_name: student-${USER:-glosper}-frontend
+    expose:
+      - "80"
+    networks:
+      - studlab_net
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
 
+networks:
+  studlab_net:
+    external: true
+    name: studlab_net
+
 volumes:
-  photos_source:
-  photos_wwwroot:
+  db_data:
+  photos:
