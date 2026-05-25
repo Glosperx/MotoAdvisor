@@ -66,7 +66,7 @@ public class RagService : IRagService
                 _motorcycleInfos[m.Id] = new MotorcycleInfo(
                     m.Id, m.Name, m.Brand.Name, m.Category.Name,
                     m.Year, m.Price, m.Horsepower,
-                    m.Images.FirstOrDefault()?.ImageUrl,
+                    GetRealImageUrl(m),
                     description);
 
                 try
@@ -261,5 +261,12 @@ public class RagService : IRagService
             normB += b[i] * b[i];
         }
         return dot / (Math.Sqrt(normA) * Math.Sqrt(normB));
+    }
+
+    private static string? GetRealImageUrl(Core.Entities.Motorcycle m)
+    {
+        static bool IsReal(Core.Entities.MotorcycleImage i) => !i.ImageUrl.Contains("placehold.co");
+        return m.Images.FirstOrDefault(i => i.IsMain && IsReal(i))?.ImageUrl
+            ?? m.Images.FirstOrDefault(IsReal)?.ImageUrl;
     }
 }
