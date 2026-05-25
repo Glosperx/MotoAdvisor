@@ -76,6 +76,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IMotorcycleService, MotorcycleService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
+builder.Services.AddSingleton<IRagService, RagService>();
 
 builder.Services.AddHostedService<PhotoSyncService>();
 builder.Services.AddHostedService<PhotoWatcherService>();
@@ -136,6 +137,9 @@ using (var scope = app.Services.CreateScope())
     }
 
     await MotoAdvisor.Infrastructure.Data.DbSeeder.SeedAsync(db, userManager, roleManager);
+
+    var ragService = scope.ServiceProvider.GetRequiredService<IRagService>();
+    await ragService.InitializeEmbeddingsAsync();
 }
 
 if (app.Environment.IsDevelopment())

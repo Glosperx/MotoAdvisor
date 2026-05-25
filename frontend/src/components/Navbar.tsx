@@ -13,6 +13,7 @@ const Navbar = () => {
 
       <div className="navbar-links">
         <Link to="/">Catalog</Link>
+        {isAuthenticated && <Link to="/search">Cauta</Link>}
         {isAuthenticated && <Link to="/profile">My Favorites</Link>}
         {isAdmin && <Link to="/admin" className="nav-admin">Admin</Link>}
 

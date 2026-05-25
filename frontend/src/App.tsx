@@ -8,6 +8,7 @@ import MotorcycleDetail from './pages/MotorcycleDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import Search from './pages/Search';
 import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/motorcycles/:id" element={<MotorcycleDetail />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/search" element={<Search />} />
             </Route>
 
             <Route element={<AdminRoute />}>

@@ -76,3 +76,20 @@ export interface Favorite {
   brandName: string;
   mainImageUrl?: string;
 }
+
+export interface RecommendedMotorcycle {
+  id: number;
+  name: string;
+  brandName: string;
+  categoryName?: string;
+  year: number;
+  price: number;
+  horsepower: number;
+  mainImageUrl?: string;
+  similarityScore: number;
+}
+
+export interface RecommendationResult {
+  aiResponse: string;
+  motorcycles: RecommendedMotorcycle[];
+}
