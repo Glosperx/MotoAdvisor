@@ -132,19 +132,29 @@ public class RagService : IRagService
             .Take(5)
             .ToList();
 
+        var motorcycleIds = similarities.Select(s => s.Id).ToList();
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var motorcyclesWithImages = await db.Motorcycles
+            .Include(m => m.Images)
+            .Include(m => m.Brand)
+            .Include(m => m.Category)
+            .Where(m => motorcycleIds.Contains(m.Id))
+            .ToListAsync();
+
         var topMotorcycles = similarities
             .Select(s => {
-                var info = _motorcycleInfos[s.Id];
+                var m = motorcyclesWithImages.First(x => x.Id == s.Id);
                 return new RecommendedMotorcycle
                 {
-                    Id = info.Id,
-                    Name = info.Name,
-                    BrandName = info.BrandName,
-                    CategoryName = info.CategoryName,
-                    Year = info.Year,
-                    Price = info.Price,
-                    Horsepower = info.Horsepower,
-                    MainImageUrl = info.MainImageUrl,
+                    Id = m.Id,
+                    Name = m.Name,
+                    BrandName = m.Brand.Name,
+                    CategoryName = m.Category.Name,
+                    Year = m.Year,
+                    Price = m.Price,
+                    Horsepower = m.Horsepower,
+                    MainImageUrl = GetRealImageUrl(m),
                     SimilarityScore = s.Score
                 };
             })
