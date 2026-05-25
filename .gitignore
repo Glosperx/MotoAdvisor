@@ -22,3 +22,4 @@ Photos/
 
 # ── Docker runtime artefacts ─────────────────────────────────────────────────
 MotoAdvisor.API/wwwroot/photos/
+.claude
