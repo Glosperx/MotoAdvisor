@@ -19,6 +19,7 @@ const Search = () => {
 
     try {
       const response = await api.post<RecommendationResult>('/api/recommend', { query });
+      console.log('Recommendation response:', response.data);
       setResult(response.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'A aparut o eroare. Incearca din nou.');
