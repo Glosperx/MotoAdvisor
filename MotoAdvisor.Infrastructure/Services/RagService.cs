@@ -74,6 +74,7 @@ public class RagService : IRagService
                     var embedding = await GetEmbeddingAsync(description);
                     _embeddings[m.Id] = embedding;
                     _logger.LogDebug("Embedded motorcycle {Id}: {Name}", m.Id, m.Name);
+                    await Task.Delay(1000);
                 }
                 catch (Exception ex)
                 {
@@ -107,7 +108,20 @@ public class RagService : IRagService
                 throw new InvalidOperationException("Failed to initialize embeddings - no motorcycles could be embedded");
         }
 
-        var queryEmbedding = await GetEmbeddingAsync(query);
+        float[] queryEmbedding;
+        try
+        {
+            queryEmbedding = await GetEmbeddingAsync(query);
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("429"))
+        {
+            _logger.LogWarning("Rate limited by Gemini API");
+            return new RagRecommendationResult
+            {
+                AiResponse = "Sistemul este temporar suprasolicitat. Te rugam sa incerci din nou in cateva secunde.",
+                Motorcycles = []
+            };
+        }
 
         var similarities = _embeddings
             .Select(kv => (Id: kv.Key, Score: CosineSimilarity(queryEmbedding, kv.Value)))
