@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -126,8 +127,20 @@ public class RagService : IRagService
             };
         }
 
+        var budgetLimit = ExtractBudget(query);
+
         var similarities = _embeddings
-            .Select(kv => (Id: kv.Key, Score: CosineSimilarity(queryEmbedding, kv.Value)))
+            .Select(kv => {
+                var score = CosineSimilarity(queryEmbedding, kv.Value);
+                if (budgetLimit.HasValue && _motorcycleInfos.TryGetValue(kv.Key, out var info))
+                {
+                    if (info.Price <= budgetLimit.Value)
+                        score *= 1.15;
+                    else
+                        score *= 0.85;
+                }
+                return (Id: kv.Key, Score: score);
+            })
             .OrderByDescending(x => x.Score)
             .Take(5)
             .ToList();
@@ -161,12 +174,12 @@ public class RagService : IRagService
             .ToList();
 
         var context = string.Join("\n\n", topMotorcycles.Select(m =>
-            $"- {m.BrandName} {m.Name} ({m.Year}): {m.Horsepower} CP, {m.Price:N0}€, categorie {m.CategoryName}"));
+            $"- {m.BrandName} {m.Name} ({m.Year}): {m.Horsepower} CP, pret {m.Price:N0}€, categorie {m.CategoryName}"));
 
         string aiResponse;
         try
         {
-            aiResponse = await GenerateResponseAsync(query, context);
+            aiResponse = await GenerateResponseAsync(query, context, budgetLimit);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("429"))
         {
@@ -229,21 +242,26 @@ public class RagService : IRagService
         return values.EnumerateArray().Select(v => v.GetSingle()).ToArray();
     }
 
-    private async Task<string> GenerateResponseAsync(string query, string context)
+    private async Task<string> GenerateResponseAsync(string query, string context, decimal? budgetLimit)
     {
         var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
+
+        var budgetNote = budgetLimit.HasValue
+            ? $"\n\nBugetul clientului: {budgetLimit:N0}€. Daca unele motociclete depasesc acest buget, mentionează acest lucru și sugerează alternative mai accesibile din lista."
+            : "";
 
         var prompt = $"""
             Esti un expert in motociclete care ajuta clientii sa gaseasca motocicleta ideala.
             Raspunde in limba romana, in mod prietenos si informativ.
 
-            Clientul cauta: {query}
+            Clientul cauta: {query}{budgetNote}
 
             Bazat pe cautarea clientului, acestea sunt cele mai potrivite 5 motociclete din catalogul nostru:
             {context}
 
             Explica de ce aceste motociclete se potrivesc cerintelor clientului.
             Mentionezi scurt avantajele fiecareia si pentru cine este mai potrivita.
+            Daca unele motociclete depasesc bugetul mentionat, spune clar acest lucru.
             Raspunsul trebuie sa fie concis (maxim 200 de cuvinte).
             """;
 
@@ -262,6 +280,27 @@ public class RagService : IRagService
             .GetProperty("parts")[0]
             .GetProperty("text")
             .GetString() ?? "";
+    }
+
+    private static decimal? ExtractBudget(string query)
+    {
+        var patterns = new[]
+        {
+            @"sub\s+(\d+(?:[\.,]\d+)?)\s*(?:euro|eur|€)?",
+            @"buget\s+(?:de\s+)?(\d+(?:[\.,]\d+)?)\s*(?:euro|eur|€)?",
+            @"max(?:im)?\s+(\d+(?:[\.,]\d+)?)\s*(?:euro|eur|€)?",
+            @"pana\s+(?:la|in)\s+(\d+(?:[\.,]\d+)?)\s*(?:euro|eur|€)?",
+            @"(\d+(?:[\.,]\d+)?)\s*(?:euro|eur|€)"
+        };
+
+        foreach (var pattern in patterns)
+        {
+            var match = Regex.Match(query, pattern, RegexOptions.IgnoreCase);
+            if (match.Success && decimal.TryParse(match.Groups[1].Value.Replace(',', '.'), out var budget))
+                return budget;
+        }
+
+        return null;
     }
 
     private static double CosineSimilarity(float[] a, float[] b)
