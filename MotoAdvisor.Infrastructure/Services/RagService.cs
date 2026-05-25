@@ -150,7 +150,16 @@ public class RagService : IRagService
         var context = string.Join("\n\n", topMotorcycles.Select(m =>
             $"- {m.BrandName} {m.Name} ({m.Year}): {m.Horsepower} CP, {m.Price:N0}€, categorie {m.CategoryName}"));
 
-        var aiResponse = await GenerateResponseAsync(query, context);
+        string aiResponse;
+        try
+        {
+            aiResponse = await GenerateResponseAsync(query, context);
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("429"))
+        {
+            _logger.LogWarning("Rate limited by Gemini API during generation");
+            aiResponse = "Sistemul de recomandare este temporar indisponibil din cauza limitelor API. Top 5 motociclete găsite sunt afișate mai jos bazat pe similaritate.";
+        }
 
         return new RagRecommendationResult
         {
