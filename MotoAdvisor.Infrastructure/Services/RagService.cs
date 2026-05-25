@@ -169,14 +169,23 @@ public class RagService : IRagService
     {
         var url = $"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={_apiKey}";
 
-        var request = new
+        var requestBody = new
         {
             model = "models/text-embedding-004",
-            content = new { parts = new[] { new { text } } }
+            content = new
+            {
+                parts = new[] { new { text = text } }
+            }
         };
 
-        var response = await _http.PostAsJsonAsync(url, request);
-        response.EnsureSuccessStatusCode();
+        var response = await _http.PostAsJsonAsync(url, requestBody);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Gemini embedding API error {StatusCode}: {Error}", response.StatusCode, errorContent);
+            throw new HttpRequestException($"Gemini API returned {response.StatusCode}: {errorContent}");
+        }
 
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         var values = json.GetProperty("embedding").GetProperty("values");
