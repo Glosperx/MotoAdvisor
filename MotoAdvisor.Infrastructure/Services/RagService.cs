@@ -17,6 +17,8 @@ public class RagService : IRagService
     private readonly ILogger<RagService> _logger;
     private readonly Dictionary<int, float[]> _embeddings = new();
     private readonly Dictionary<int, MotorcycleInfo> _motorcycleInfos = new();
+    private bool _initialized;
+    private readonly SemaphoreSlim _initLock = new(1, 1);
 
     private record MotorcycleInfo(
         int Id, string Name, string BrandName, string CategoryName,
@@ -34,45 +36,76 @@ public class RagService : IRagService
 
     public async Task InitializeEmbeddingsAsync()
     {
-        _logger.LogInformation("Initializing motorcycle embeddings...");
-
-        using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        var motorcycles = await db.Motorcycles
-            .Include(m => m.Brand)
-            .Include(m => m.Category)
-            .Include(m => m.Images)
-            .ToListAsync();
-
-        foreach (var m in motorcycles)
+        await _initLock.WaitAsync();
+        try
         {
-            var description = BuildDescription(m);
-            _motorcycleInfos[m.Id] = new MotorcycleInfo(
-                m.Id, m.Name, m.Brand.Name, m.Category.Name,
-                m.Year, m.Price, m.Horsepower,
-                m.Images.FirstOrDefault()?.ImageUrl,
-                description);
+            if (_initialized && _embeddings.Count > 0)
+            {
+                _logger.LogDebug("Embeddings already initialized, skipping");
+                return;
+            }
 
-            try
+            _logger.LogInformation("Initializing motorcycle embeddings...");
+            _logger.LogInformation("Using Gemini API key: {KeyPrefix}...",
+                _apiKey.Length > 10 ? _apiKey[..10] : "[too short]");
+
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var motorcycles = await db.Motorcycles
+                .Include(m => m.Brand)
+                .Include(m => m.Category)
+                .Include(m => m.Images)
+                .ToListAsync();
+
+            _logger.LogInformation("Found {Count} motorcycles to embed", motorcycles.Count);
+
+            foreach (var m in motorcycles)
             {
-                var embedding = await GetEmbeddingAsync(description);
-                _embeddings[m.Id] = embedding;
-                _logger.LogDebug("Embedded motorcycle {Id}: {Name}", m.Id, m.Name);
+                var description = BuildDescription(m);
+                _motorcycleInfos[m.Id] = new MotorcycleInfo(
+                    m.Id, m.Name, m.Brand.Name, m.Category.Name,
+                    m.Year, m.Price, m.Horsepower,
+                    m.Images.FirstOrDefault()?.ImageUrl,
+                    description);
+
+                try
+                {
+                    var embedding = await GetEmbeddingAsync(description);
+                    _embeddings[m.Id] = embedding;
+                    _logger.LogDebug("Embedded motorcycle {Id}: {Name}", m.Id, m.Name);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to embed motorcycle {Id}: {Name}. Error: {Message}",
+                        m.Id, m.Name, ex.Message);
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to embed motorcycle {Id}", m.Id);
-            }
+
+            _initialized = true;
+            _logger.LogInformation("Initialized {Count} motorcycle embeddings successfully", _embeddings.Count);
         }
-
-        _logger.LogInformation("Initialized {Count} motorcycle embeddings", _embeddings.Count);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to initialize embeddings: {Message}", ex.Message);
+            throw;
+        }
+        finally
+        {
+            _initLock.Release();
+        }
     }
 
     public async Task<RagRecommendationResult> RecommendAsync(string query)
     {
         if (_embeddings.Count == 0)
-            throw new InvalidOperationException("Embeddings not initialized");
+        {
+            _logger.LogWarning("Embeddings not initialized, attempting on-demand initialization...");
+            await InitializeEmbeddingsAsync();
+
+            if (_embeddings.Count == 0)
+                throw new InvalidOperationException("Failed to initialize embeddings - no motorcycles could be embedded");
+        }
 
         var queryEmbedding = await GetEmbeddingAsync(query);
 
