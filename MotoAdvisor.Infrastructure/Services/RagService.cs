@@ -167,11 +167,11 @@ public class RagService : IRagService
 
     private async Task<float[]> GetEmbeddingAsync(string text)
     {
-        var url = $"https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent?key={_apiKey}";
+        var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={_apiKey}";
 
         var requestBody = new
         {
-            model = "models/text-embedding-004",
+            model = "models/gemini-embedding-001",
             content = new
             {
                 parts = new[] { new { text = text } }
@@ -195,7 +195,7 @@ public class RagService : IRagService
 
     private async Task<string> GenerateResponseAsync(string query, string context)
     {
-        var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={_apiKey}";
+        var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
 
         var prompt = $"""
             Esti un expert in motociclete care ajuta clientii sa gaseasca motocicleta ideala.
