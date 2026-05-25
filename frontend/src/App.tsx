@@ -17,12 +17,12 @@ function App() {
         <Navbar />
         <main>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/motorcycles/:id" element={<MotorcycleDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
             <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/motorcycles/:id" element={<MotorcycleDetail />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
 
