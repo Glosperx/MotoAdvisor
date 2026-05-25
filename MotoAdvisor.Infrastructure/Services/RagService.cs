@@ -63,10 +63,13 @@ public class RagService : IRagService
             foreach (var m in motorcycles)
             {
                 var description = BuildDescription(m);
+                var imageUrl = GetRealImageUrl(m);
+                _logger.LogDebug("Motorcycle {Id} {Name}: {ImageCount} images, mainImageUrl={ImageUrl}",
+                    m.Id, m.Name, m.Images.Count, imageUrl ?? "null");
                 _motorcycleInfos[m.Id] = new MotorcycleInfo(
                     m.Id, m.Name, m.Brand.Name, m.Category.Name,
                     m.Year, m.Price, m.Horsepower,
-                    GetRealImageUrl(m),
+                    imageUrl,
                     description);
 
                 try
