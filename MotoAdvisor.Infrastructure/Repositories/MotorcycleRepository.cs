@@ -58,22 +58,21 @@ public class MotorcycleRepository : IMotorcycleRepository
             .Where(m => m.EmbeddingVector != null)
             .ToListAsync();
 
-    public async Task<Motorcycle> AddAsync(Motorcycle entity)
+    public Task<Motorcycle> AddAsync(Motorcycle entity)
     {
         _context.Motorcycles.Add(entity);
-        await _context.SaveChangesAsync();
-        return entity;
+        return Task.FromResult(entity);
     }
 
-    public async Task UpdateAsync(Motorcycle entity)
+    public Task UpdateAsync(Motorcycle entity)
     {
         _context.Motorcycles.Update(entity);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
-    public async Task DeleteAsync(Motorcycle entity)
+    public Task DeleteAsync(Motorcycle entity)
     {
         _context.Motorcycles.Remove(entity);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 }

@@ -28,22 +28,21 @@ public class ReviewRepository : IReviewRepository
         await _context.Reviews
             .FirstOrDefaultAsync(r => r.UserId == userId && r.MotorcycleId == motorcycleId);
 
-    public async Task<Review> AddAsync(Review entity)
+    public Task<Review> AddAsync(Review entity)
     {
         _context.Reviews.Add(entity);
-        await _context.SaveChangesAsync();
-        return entity;
+        return Task.FromResult(entity);
     }
 
-    public async Task UpdateAsync(Review entity)
+    public Task UpdateAsync(Review entity)
     {
         _context.Reviews.Update(entity);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
-    public async Task DeleteAsync(Review entity)
+    public Task DeleteAsync(Review entity)
     {
         _context.Reviews.Remove(entity);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 }

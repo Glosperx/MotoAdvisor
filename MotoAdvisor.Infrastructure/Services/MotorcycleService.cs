@@ -1,14 +1,20 @@
 using MotoAdvisor.Core.DTOs;
 using MotoAdvisor.Core.Entities;
 using MotoAdvisor.Core.Interfaces;
+using MotoAdvisor.Infrastructure.Data;
 
 namespace MotoAdvisor.Infrastructure.Services;
 
 public class MotorcycleService : IMotorcycleService
 {
     private readonly IMotorcycleRepository _repo;
+    private readonly AppDbContext _context;
 
-    public MotorcycleService(IMotorcycleRepository repo) => _repo = repo;
+    public MotorcycleService(IMotorcycleRepository repo, AppDbContext context)
+    {
+        _repo = repo;
+        _context = context;
+    }
 
     public async Task<IEnumerable<MotorcycleSummaryDto>> GetAllAsync(
         int? brandId = null, int? categoryId = null,
@@ -50,6 +56,7 @@ public class MotorcycleService : IMotorcycleService
             CategoryId = dto.CategoryId
         };
         await _repo.AddAsync(motorcycle);
+        await _context.SaveChangesAsync();
 
         var created = await _repo.GetWithDetailsAsync(motorcycle.Id);
         return MapToSummary(created!);
@@ -73,6 +80,7 @@ public class MotorcycleService : IMotorcycleService
         motorcycle.CategoryId = dto.CategoryId;
 
         await _repo.UpdateAsync(motorcycle);
+        await _context.SaveChangesAsync();
         return true;
     }
 
@@ -81,6 +89,7 @@ public class MotorcycleService : IMotorcycleService
         var motorcycle = await _repo.GetByIdAsync(id);
         if (motorcycle is null) return false;
         await _repo.DeleteAsync(motorcycle);
+        await _context.SaveChangesAsync();
         return true;
     }
 

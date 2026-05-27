@@ -17,23 +17,22 @@ public class BrandRepository : IBrandRepository
     public async Task<IEnumerable<Brand>> GetAllAsync() =>
         await _context.Brands.ToListAsync();
 
-    public async Task<Brand> AddAsync(Brand entity)
+    public Task<Brand> AddAsync(Brand entity)
     {
         _context.Brands.Add(entity);
-        await _context.SaveChangesAsync();
-        return entity;
+        return Task.FromResult(entity);
     }
 
-    public async Task UpdateAsync(Brand entity)
+    public Task UpdateAsync(Brand entity)
     {
         _context.Brands.Update(entity);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
-    public async Task DeleteAsync(Brand entity)
+    public Task DeleteAsync(Brand entity)
     {
         _context.Brands.Remove(entity);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
     public async Task<Brand?> GetByNameAsync(string name) =>

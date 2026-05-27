@@ -17,23 +17,22 @@ public class CategoryRepository : ICategoryRepository
     public async Task<IEnumerable<Category>> GetAllAsync() =>
         await _context.Categories.ToListAsync();
 
-    public async Task<Category> AddAsync(Category entity)
+    public Task<Category> AddAsync(Category entity)
     {
         _context.Categories.Add(entity);
-        await _context.SaveChangesAsync();
-        return entity;
+        return Task.FromResult(entity);
     }
 
-    public async Task UpdateAsync(Category entity)
+    public Task UpdateAsync(Category entity)
     {
         _context.Categories.Update(entity);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
-    public async Task DeleteAsync(Category entity)
+    public Task DeleteAsync(Category entity)
     {
         _context.Categories.Remove(entity);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
     public async Task<Category?> GetByNameAsync(string name) =>

@@ -1,14 +1,20 @@
 using MotoAdvisor.Core.DTOs;
 using MotoAdvisor.Core.Entities;
 using MotoAdvisor.Core.Interfaces;
+using MotoAdvisor.Infrastructure.Data;
 
 namespace MotoAdvisor.Infrastructure.Services;
 
 public class CategoryService : ICategoryService
 {
     private readonly ICategoryRepository _repo;
+    private readonly AppDbContext _context;
 
-    public CategoryService(ICategoryRepository repo) => _repo = repo;
+    public CategoryService(ICategoryRepository repo, AppDbContext context)
+    {
+        _repo = repo;
+        _context = context;
+    }
 
     public async Task<IEnumerable<CategoryDto>> GetAllAsync() =>
         (await _repo.GetAllAsync()).Select(Map);
@@ -23,6 +29,7 @@ public class CategoryService : ICategoryService
     {
         var category = new Category { Name = dto.Name, Description = dto.Description };
         await _repo.AddAsync(category);
+        await _context.SaveChangesAsync();
         return Map(category);
     }
 
@@ -34,6 +41,7 @@ public class CategoryService : ICategoryService
         category.Name = dto.Name;
         category.Description = dto.Description;
         await _repo.UpdateAsync(category);
+        await _context.SaveChangesAsync();
         return true;
     }
 
@@ -42,6 +50,7 @@ public class CategoryService : ICategoryService
         var category = await _repo.GetByIdAsync(id);
         if (category is null) return false;
         await _repo.DeleteAsync(category);
+        await _context.SaveChangesAsync();
         return true;
     }
 

@@ -1,6 +1,7 @@
 using MotoAdvisor.Core.DTOs;
 using MotoAdvisor.Core.Entities;
 using MotoAdvisor.Core.Interfaces;
+using MotoAdvisor.Infrastructure.Data;
 
 namespace MotoAdvisor.Infrastructure.Services;
 
@@ -8,11 +9,13 @@ public class FavoriteService : IFavoriteService
 {
     private readonly IUserFavoriteRepository _repo;
     private readonly IMotorcycleRepository _motorcycleRepo;
+    private readonly AppDbContext _context;
 
-    public FavoriteService(IUserFavoriteRepository repo, IMotorcycleRepository motorcycleRepo)
+    public FavoriteService(IUserFavoriteRepository repo, IMotorcycleRepository motorcycleRepo, AppDbContext context)
     {
         _repo = repo;
         _motorcycleRepo = motorcycleRepo;
+        _context = context;
     }
 
     public async Task<IEnumerable<FavoriteDto>> GetUserFavoritesAsync(string userId) =>
@@ -33,6 +36,7 @@ public class FavoriteService : IFavoriteService
         if (motorcycle is null) return false;
 
         await _repo.AddAsync(new UserFavorite { UserId = userId, MotorcycleId = motorcycleId });
+        await _context.SaveChangesAsync();
         return true;
     }
 
@@ -42,6 +46,7 @@ public class FavoriteService : IFavoriteService
         if (favorite is null) return false;
 
         await _repo.RemoveAsync(favorite);
+        await _context.SaveChangesAsync();
         return true;
     }
 }

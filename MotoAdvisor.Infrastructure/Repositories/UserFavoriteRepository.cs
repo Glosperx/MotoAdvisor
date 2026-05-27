@@ -22,16 +22,16 @@ public class UserFavoriteRepository : IUserFavoriteRepository
         await _context.UserFavorites
             .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.MotorcycleId == motorcycleId);
 
-    public async Task AddAsync(UserFavorite favorite)
+    public Task AddAsync(UserFavorite favorite)
     {
         _context.UserFavorites.Add(favorite);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
-    public async Task RemoveAsync(UserFavorite favorite)
+    public Task RemoveAsync(UserFavorite favorite)
     {
         _context.UserFavorites.Remove(favorite);
-        await _context.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
     public async Task<bool> ExistsAsync(string userId, int motorcycleId) =>
