@@ -10,6 +10,7 @@ using MotoAdvisor.Core.Interfaces;
 using MotoAdvisor.Infrastructure.Data;
 using MotoAdvisor.Infrastructure.Repositories;
 using MotoAdvisor.Infrastructure.Services;
+using MotoAdvisor.API.Middleware;
 using MotoAdvisor.API.Services;
 using Serilog;
 
@@ -141,6 +142,8 @@ using (var scope = app.Services.CreateScope())
     var ragService = scope.ServiceProvider.GetRequiredService<IRagService>();
     await ragService.InitializeEmbeddingsAsync();
 }
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

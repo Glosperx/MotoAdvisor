@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using MotoAdvisor.Core.DTOs;
 using MotoAdvisor.Core.Entities;
 using MotoAdvisor.Core.Interfaces;
@@ -9,11 +10,13 @@ public class MotorcycleService : IMotorcycleService
 {
     private readonly IMotorcycleRepository _repo;
     private readonly AppDbContext _context;
+    private readonly ILogger<MotorcycleService> _logger;
 
-    public MotorcycleService(IMotorcycleRepository repo, AppDbContext context)
+    public MotorcycleService(IMotorcycleRepository repo, AppDbContext context, ILogger<MotorcycleService> logger)
     {
         _repo = repo;
         _context = context;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<MotorcycleSummaryDto>> GetAllAsync(
@@ -33,7 +36,12 @@ public class MotorcycleService : IMotorcycleService
     public async Task<MotorcycleDetailDto?> GetByIdAsync(int id)
     {
         var m = await _repo.GetWithDetailsAsync(id);
-        return m is null ? null : MapToDetail(m);
+        if (m is null)
+        {
+            _logger.LogWarning("Motorcycle with id {Id} not found", id);
+            return null;
+        }
+        return MapToDetail(m);
     }
 
     public async Task<IEnumerable<MotorcycleSummaryDto>> SearchAsync(string query) =>
@@ -59,13 +67,18 @@ public class MotorcycleService : IMotorcycleService
         await _context.SaveChangesAsync();
 
         var created = await _repo.GetWithDetailsAsync(motorcycle.Id);
+        _logger.LogInformation("Motorcycle created with id {Id} and name '{Name}'", created!.Id, created.Name);
         return MapToSummary(created!);
     }
 
     public async Task<bool> UpdateAsync(int id, UpdateMotorcycleDto dto)
     {
         var motorcycle = await _repo.GetByIdAsync(id);
-        if (motorcycle is null) return false;
+        if (motorcycle is null)
+        {
+            _logger.LogWarning("Update failed — motorcycle with id {Id} not found", id);
+            return false;
+        }
 
         motorcycle.Name = dto.Name;
         motorcycle.Year = dto.Year;
@@ -81,15 +94,21 @@ public class MotorcycleService : IMotorcycleService
 
         await _repo.UpdateAsync(motorcycle);
         await _context.SaveChangesAsync();
+        _logger.LogInformation("Motorcycle with id {Id} updated", id);
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
         var motorcycle = await _repo.GetByIdAsync(id);
-        if (motorcycle is null) return false;
+        if (motorcycle is null)
+        {
+            _logger.LogWarning("Delete failed — motorcycle with id {Id} not found", id);
+            return false;
+        }
         await _repo.DeleteAsync(motorcycle);
         await _context.SaveChangesAsync();
+        _logger.LogInformation("Motorcycle with id {Id} deleted", id);
         return true;
     }
 
